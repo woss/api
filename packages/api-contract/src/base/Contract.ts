@@ -21,7 +21,6 @@ type ContractCallResultSubscription<ApiType extends ApiTypes, CallType extends C
   ? Observable<ContractCallResult<CallType>>
   : Promise<ObsInnerType<ContractCallResult<CallType>>>;
 
-// eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface ContractCall<ApiType extends ApiTypes, CallType extends ContractCallTypes> {
   send (account: IKeyringPair | string | AccountId | Address): ContractCallResultSubscription<ApiType, CallType>;
 }
@@ -33,16 +32,23 @@ export type ContractCallResult<CallType extends ContractCallTypes> = CallType ex
 export default class Contract<ApiType extends ApiTypes> extends BaseWithTxAndRpcCall<ApiType> {
   public readonly address: Address;
 
+  constructor (api: ApiObject<ApiType>, abi: ContractABIPre | Abi, decorateMethod: DecorateMethod<ApiType>, address: string | AccountId | Address) {
+    super(api, abi, decorateMethod);
+
+    this.address = this.registry.createType('Address', address);
+  }
+
   public call (as: 'rpc', message: string, value: BN | number, gasLimit: BN | number, ...params: any[]): ContractCall<ApiType, 'rpc'>;
   public call (as: 'tx', message: string, value: BN | number, gasLimit: BN | number, ...params: any[]): ContractCall<ApiType, 'tx'>;
   public call<CallType extends ContractCallTypes> (as: CallType, message: string, value: BN | number, gasLimit: BN | number, ...params: any[]): ContractCall<ApiType, CallType> {
     const { def, fn } = this.getMessage(message);
 
     return {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       send: this.decorateMethod(
         as === 'rpc' && this.hasRpcContractsCall
           ? (account: IKeyringPair | string | AccountId | Address): ContractCallResult<'rpc'> =>
-            this.rpcContractsCall(
+            this._rpcContractsCall(
               this.registry.createType('ContractCallRequest', {
                 dest: this.address.toString(),
                 gasLimit,
@@ -51,17 +57,17 @@ export default class Contract<ApiType extends ApiTypes> extends BaseWithTxAndRpc
                 value
               })
             ).pipe(map((result: ContractExecResult): ContractCallOutcome =>
-              this.createOutcome(result, this.registry.createType('AccountId', account), def, params)
+              this._createOutcome(result, this.registry.createType('AccountId', account), def, params)
             ))
           : (account: IKeyringPair | string | AccountId | Address): ContractCallResult<'tx'> =>
-            this.apiContracts
+            this._apiContracts
               .call(this.address, value, gasLimit, fn(...params))
               .signAndSend(account)
       )
     };
   }
 
-  private createOutcome (result: ContractExecResult, origin: AccountId, message: ContractABIMessage, params: any[]): ContractCallOutcome {
+  private _createOutcome (result: ContractExecResult, origin: AccountId, message: ContractABIMessage, params: any[]): ContractCallOutcome {
     let output: Codec | null = null;
 
     if (result.isSuccess) {
@@ -81,11 +87,5 @@ export default class Contract<ApiType extends ApiTypes> extends BaseWithTxAndRpc
       result,
       time: Date.now()
     };
-  }
-
-  constructor (api: ApiObject<ApiType>, abi: ContractABIPre | Abi, decorateMethod: DecorateMethod<ApiType>, address: string | AccountId | Address) {
-    super(api, abi, decorateMethod);
-
-    this.address = this.registry.createType('Address', address);
   }
 }

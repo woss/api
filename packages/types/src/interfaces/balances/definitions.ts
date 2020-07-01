@@ -27,8 +27,8 @@ export default {
       amount: 'Balance',
       reasons: 'Reasons'
     },
-    ReleasesBalances: {
-      _enum: ['V1_0_0', 'V2_0_0']
+    BalanceStatus: {
+      _enum: ['Free', 'Reserved']
     },
     Reasons: {
       _enum: ['Fee', 'Misc', 'All']

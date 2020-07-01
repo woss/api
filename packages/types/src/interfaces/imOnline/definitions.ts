@@ -16,6 +16,13 @@ export default {
       blockNumber: 'BlockNumber',
       networkState: 'OpaqueNetworkState',
       sessionIndex: 'SessionIndex',
+      authorityIndex: 'AuthIndex',
+      validatorsLen: 'u32'
+    },
+    HeartbeatTo244: {
+      blockNumber: 'BlockNumber',
+      networkState: 'OpaqueNetworkState',
+      sessionIndex: 'SessionIndex',
       authorityIndex: 'AuthIndex'
     },
     OpaqueMultiaddr: 'Bytes',

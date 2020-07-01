@@ -19,7 +19,7 @@ function parseSelector (registry: Registry, fnname: string, input: ContractABIMe
     return registry.createType('u32', hexToU8a(input));
   } else if (typeof input === 'string') {
     try {
-      const array = JSON.parse(input);
+      const array = JSON.parse(input) as unknown[];
 
       assert(array.length === 4, `${fnname}: Invalid selector length`);
 
@@ -61,7 +61,7 @@ export default class ContractRegistry extends MetaRegistry {
       const unknownKeys = Object.keys(arg).filter((key): boolean => !['name', 'type'].includes(key));
 
       assert(unknownKeys.length === 0, `Unknown keys ${unknownKeys.join(', ')} found in ABI args for ${name}`);
-      assert(isNumber(arg.name) && isString(this.stringAt(arg.name)), `${name} args should have valid name `);
+      assert(isNumber(arg.name) && isString(this._stringAt(arg.name)), `${name} args should have valid name `);
       assert(isNumber(arg.type.ty) && isObject(this.typeDefAt(arg.type.ty)), `${name} args should have valid type`);
     });
   }
@@ -85,7 +85,7 @@ export default class ContractRegistry extends MetaRegistry {
 
       const { name, return_type: returnType, selector } = message;
 
-      assert(isNumber(name) && isString(this.stringAt(name)), `Expected name for ${fnname}`);
+      assert(isNumber(name) && isString(this._stringAt(name)), `Expected name for ${fnname}`);
       assert(isNull(returnType) || (isNumber(returnType.ty) && isObject(this.typeDefAt(returnType.ty))), `Expected return_type for ${fnname}`);
 
       parseSelector(this.registry, fnname, selector);
@@ -100,7 +100,7 @@ export default class ContractRegistry extends MetaRegistry {
 
     const { contract: { constructors, messages, name } } = abi;
 
-    assert(constructors && messages && isString(this.stringAt(name)), 'ABI should have constructors, messages & name sections');
+    assert(constructors && messages && isString(this._stringAt(name)), 'ABI should have constructors, messages & name sections');
 
     this.validateConstructors(abi);
     this.validateMessages(abi);
@@ -108,7 +108,7 @@ export default class ContractRegistry extends MetaRegistry {
 
   public createMessage (name: string, message: Partial<ContractABIMessage> & ContractABIMessageBase): ContractABIFn {
     const args = message.args.map(({ name, type }): ContractABIFnArg => {
-      assert(isObject(type), `Invalid type at index ${type}`);
+      assert(isObject(type), `Invalid type at index ${type.toString()}`);
 
       return {
         name: stringCamelCase(name),
@@ -151,7 +151,7 @@ export default class ContractRegistry extends MetaRegistry {
   }
 
   public convertArgs (args: ContractABIArgBasePre[]): any[] {
-    return args.map(({ name, type, ...arg }) => ({ ...arg, name: this.stringAt(name), type: this.convertType(type) }));
+    return args.map(({ name, type, ...arg }) => ({ ...arg, name: this._stringAt(name), type: this.convertType(type) }));
   }
 
   public convertType ({ display_name: displayNameIndices, ty }: ContractABITypePre): TypeDef {
@@ -164,7 +164,7 @@ export default class ContractRegistry extends MetaRegistry {
     return {
       constructors: this.convertConstructors(constructors),
       messages: messages.map((message) => this.convertMessage(message)),
-      name: this.stringAt(name),
+      name: this._stringAt(name),
       ...(events
         ? { events: events.map((event) => this.convertEvent(event)) }
         : {}),
@@ -183,14 +183,16 @@ export default class ContractRegistry extends MetaRegistry {
   public convertMessage ({ args, name, return_type: returnType, ...message }: ContractABIMessagePre): ContractABIMessage {
     return {
       ...message,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       args: this.convertArgs(args),
-      name: this.stringAt(name),
+      name: this._stringAt(name),
       returnType: returnType ? this.convertType(returnType) : null
     };
   }
 
   public convertEvent ({ args }: ContractABIEventPre): ContractABIEvent {
     return {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       args: this.convertArgs(args)
     };
   }
@@ -211,7 +213,7 @@ export default class ContractRegistry extends MetaRegistry {
     return {
       'struct.fields': structFields.map(({ layout, name }) => ({
         layout: this.convertStorageLayout(layout),
-        name: this.stringAt(name)
+        name: this._stringAt(name)
       })),
       'struct.type': this.typeDefAt(structType)
     };

@@ -3,6 +3,7 @@
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 /* eslint-disable sort-keys */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import Metadata from '@polkadot/metadata/Metadata';
 import metadataStatic from '@polkadot/metadata/Metadata/static';
@@ -23,15 +24,7 @@ describe('Block', (): void => {
     ).toEqual(
       // each of the containing structures have been stringified on their own
       JSON.stringify({
-        header: JSON.stringify({
-          parentHash: 'H256',
-          number: 'Compact<u32>',
-          stateRoot: 'H256',
-          extrinsicsRoot: 'H256',
-          digest: JSON.stringify({
-            logs: 'Vec<{"_enum":{"Other":"Bytes","AuthoritiesChange":"Vec<AccountId>","ChangesTrieRoot":"H256","SealV0":"(u64,H512)","Consensus":"(u32,Bytes)","Seal":"(u32,Bytes)","PreRuntime":"(u32,Bytes)"}}>'
-          })
-        }),
+        header: 'Header',
         extrinsics: 'Vec<Extrinsic>'
       })
     );

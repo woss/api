@@ -2,59 +2,83 @@
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
+import Handlebars from 'handlebars';
+
 import { TypeDef, TypeDefInfo } from '@polkadot/types/create/types';
 
 import { getTypeDef } from '@polkadot/types/create';
 import { paramsNotation } from '@polkadot/types/codec/utils';
 
-import { setImports, TypeImports } from './imports';
+import { setImports, ModuleTypes, TypeImports } from './imports';
+import { readTemplate } from './file';
 
-export const HEADER = (type: 'chain' | 'defs'): string => `// Auto-generated via \`yarn polkadot-types-from-${type}\`, do not edit\n/* eslint-disable */\n\n`;
-export const FOOTER = '\n';
+interface This {
+  imports: TypeImports;
+  types: {
+    file: string;
+    types: string[];
+  }[]
+}
 
 const TYPES_NON_PRIMITIVE = ['Metadata'];
 
-// creates the import lines
-/** @internal */
-export function createImportCode (header: string, imports: TypeImports, checks: { file: string; types: string[] }[]): string {
-  return [
-    {
-      file: '@polkadot/types/types',
-      types: Object.keys(imports.typesTypes)
-    },
-    {
-      file: '@polkadot/types/codec',
-      types: Object
-        .keys(imports.codecTypes)
-        .filter((name): boolean => name !== 'Tuple')
-    },
-    {
-      file: '@polkadot/types/extrinsic',
-      types: Object.keys(imports.extrinsicTypes)
-    },
-    {
-      file: '@polkadot/types/generic',
-      types: Object.keys(imports.genericTypes)
-    },
-    {
-      file: '@polkadot/types/primitive',
-      types: Object
-        .keys(imports.primitiveTypes)
-        .filter((name): boolean => !TYPES_NON_PRIMITIVE.includes(name))
-    },
-    {
-      file: '@polkadot/types',
-      types: Object
-        .keys(imports.primitiveTypes)
-        .filter((name): boolean => TYPES_NON_PRIMITIVE.includes(name))
-    },
-    ...checks
-  ].reduce((result, { file, types }): string => {
-    return types.length
-      ? `${result}import { ${types.sort().join(', ')} } from '${file}';\n`
-      : result;
-  }, header) + '\n';
-}
+export const HEADER = (type: 'chain' | 'defs'): string => `// Auto-generated via \`yarn polkadot-types-from-${type}\`, do not edit\n/* eslint-disable */\n\n`;
+
+Handlebars.registerPartial({
+  footer: Handlebars.compile(readTemplate('footer')),
+  header: Handlebars.compile(readTemplate('header'))
+});
+
+Handlebars.registerHelper({
+  imports () {
+    const { imports, types } = this as unknown as This;
+    const defs = [
+      {
+        file: '@polkadot/types/types',
+        types: Object.keys(imports.typesTypes)
+      },
+      {
+        file: '@polkadot/types/codec',
+        types: Object
+          .keys(imports.codecTypes)
+          .filter((name) => name !== 'Tuple')
+      },
+      {
+        file: '@polkadot/types/extrinsic',
+        types: Object.keys(imports.extrinsicTypes)
+      },
+      {
+        file: '@polkadot/types/generic',
+        types: Object.keys(imports.genericTypes)
+      },
+      {
+        file: '@polkadot/types/primitive',
+        types: Object
+          .keys(imports.primitiveTypes)
+          .filter((name) => !TYPES_NON_PRIMITIVE.includes(name))
+      },
+      {
+        file: '@polkadot/types',
+        types: Object
+          .keys(imports.primitiveTypes)
+          .filter((name) => TYPES_NON_PRIMITIVE.includes(name))
+      },
+      ...types
+    ];
+
+    return defs.reduce((result, { file, types }): string => {
+      return types.length
+        ? `${result}import { ${types.sort().join(', ')} } from '${file}';\n`
+        : result;
+    }, '');
+  },
+  trim (options: { fn: (self: unknown) => string }) {
+    return options.fn(this).trim();
+  },
+  upper (options: { fn: (self: unknown) => string }) {
+    return options.fn(this).toUpperCase();
+  }
+});
 
 // helper to generate a `export interface <Name> extends <Base> {<Body>}
 /** @internal */
@@ -95,6 +119,14 @@ function formatBTreeSet (val: string): string {
 /** @internal */
 function formatCompact (inner: string): string {
   return paramsNotation('Compact', inner);
+}
+
+/**
+ * Simple return
+ */
+/** @internal */
+function formatDoNoConstruct (): string {
+  return 'DoNotConstruct';
 }
 
 /**
@@ -149,7 +181,7 @@ function formatVec (inner: string): string {
  * Correctly format a given type
  */
 /** @internal */
-export function formatType (definitions: object, type: string | TypeDef, imports: TypeImports): string {
+export function formatType (definitions: Record<string, ModuleTypes>, type: string | TypeDef, imports: TypeImports): string {
   let typeDef: TypeDef;
 
   if (typeof type === 'string') {
@@ -172,6 +204,12 @@ export function formatType (definitions: object, type: string | TypeDef, imports
       setImports(definitions, imports, ['Compact']);
 
       return formatCompact(formatType(definitions, (typeDef.sub as TypeDef).type, imports));
+    }
+
+    case TypeDefInfo.DoNotConstruct: {
+      setImports(definitions, imports, ['DoNotConstruct']);
+
+      return formatDoNoConstruct();
     }
 
     case TypeDefInfo.Option: {
@@ -258,14 +296,4 @@ export function formatType (definitions: object, type: string | TypeDef, imports
       throw new Error(`Cannot format ${JSON.stringify(type)}`);
     }
   }
-}
-
-/**
- * Indent a string with `n` spaces before.
- */
-/** @internal */
-export function indent (n: number, char = ' '): (str: string) => string {
-  return function (str: string): string {
-    return `${char.repeat(n)}${str}`;
-  };
 }

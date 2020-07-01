@@ -95,6 +95,14 @@ describe('createType', (): void => {
     ).toThrow('UInt<20>: Only support for UInt<bitLength>, where length <= 8192 and a power of 8');
   });
 
+  it('fails on creation of DoNotConstruct', (): void => {
+    const Clazz = createClass(registry, 'DoNotConstruct<UnknownSomething>');
+
+    expect(
+      () => new Clazz(registry)
+    ).toThrow('Cannot construct unknown type UnknownSomething');
+  });
+
   it('allows creation of a [u8; 8]', (): void => {
     expect(
       createTypeUnsafe(registry, '[u8; 8]', [[0x12, 0x00, 0x23, 0x00, 0x45, 0x00, 0x67, 0x00]]).toHex()
@@ -170,14 +178,18 @@ describe('createType', (): void => {
         }
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const cmpDef: any = createTypeUnsafe(registry, 'TestComplex');
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call
       expect(cmpDef.balance.bitLength()).toEqual(128);
 
       registry.register({ Balance: 'u32' });
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const cmpu32: any = createTypeUnsafe(registry, 'TestComplex');
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call
       expect(cmpu32.balance.bitLength()).toEqual(32);
     });
   });

@@ -44,12 +44,20 @@ describe('Tuple', (): void => {
     testDecode('hex', '0x1c62617a7a696e6745000000');
     testDecode('Uint8Array', Uint8Array.from([28, 98, 97, 122, 122, 105, 110, 103, 69, 0, 0, 0]));
 
-    it('decodes reusing instanciated inputs', (): void => {
+    it('decodes reusing instantiated inputs', (): void => {
       const foo = new Text(registry, 'bar');
 
       expect(
         (new Tuple(registry, [Text], [foo]))[0]
       ).toBe(foo);
+    });
+
+    it('decodes properly from complex types', (): void => {
+      const INPUT = '0xcc0200000000';
+      const test = registry.createType('(u32, [u32; 0], u16)' as 'u32', INPUT);
+
+      expect(test.encodedLength).toEqual(4 + 0 + 2);
+      expect(test.toHex()).toEqual(INPUT);
     });
   });
 
@@ -123,14 +131,14 @@ describe('Tuple', (): void => {
     it('generates sane value with array types', (): void => {
       expect(
         new Tuple(registry, [U128, registry.createClass('BlockNumber')]).toRawType()
-      ).toEqual('(u128,u32)');
+      ).toEqual('(u128,BlockNumber)');
     });
 
     it('generates sane value with object types', (): void => {
       expect(
         // eslint-disable-next-line sort-keys
         new Tuple(registry, { number: U128, blockNumber: registry.createClass('BlockNumber') }).toRawType()
-      ).toEqual('(u128,u32)');
+      ).toEqual('(u128,BlockNumber)');
     });
   });
 });

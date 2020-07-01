@@ -46,7 +46,7 @@ export abstract class Base<ApiType extends ApiTypes> implements ContractBase<Api
       : 0;
     const def = this.abi.abi.contract.messages[index];
 
-    assert(!!def, `Attempted to access a contract message that does not exist: ${typeof nameOrIndex === 'number' ? `index ${nameOrIndex}` : nameOrIndex}`);
+    assert(!!def, `Attempted to access a contract message that does not exist: ${typeof nameOrIndex === 'number' ? `index ${nameOrIndex}` : (nameOrIndex || 'unknown')}`);
 
     const fn = this.abi.messages[def.name] || this.abi.messages[stringCamelCase(def.name)];
 
@@ -55,7 +55,7 @@ export abstract class Base<ApiType extends ApiTypes> implements ContractBase<Api
 }
 
 export abstract class BaseWithTx<ApiType extends ApiTypes> extends Base<ApiType> {
-  protected get apiContracts (): SubmittableModuleExtrinsics<'rxjs'> {
+  protected get _apiContracts (): SubmittableModuleExtrinsics<'rxjs'> {
     return this.api.rx.tx.contracts;
   }
 
@@ -71,7 +71,7 @@ export abstract class BaseWithTxAndRpcCall<ApiType extends ApiTypes> extends Bas
     return isFunction(this.api.rx.rpc.contracts?.call);
   }
 
-  protected get rpcContractsCall (): DecoratedRpc<'rxjs', RpcInterface>['contracts']['call'] {
+  protected get _rpcContractsCall (): DecoratedRpc<'rxjs', RpcInterface>['contracts']['call'] {
     assert(this.hasRpcContractsCall, 'You need to connect to a node with the contracts.call RPC method.');
 
     return this.api.rx.rpc.contracts.call;

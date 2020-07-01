@@ -1,8 +1,14 @@
-// Copyright 2017-2020 @polkadot/types authors & contributors
+// Copyright 2017-2020 @polkadot/types-known authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import { OverrideVersionedType } from '@polkadot/types/types';
+
+const sharedTypes = {
+  Address: 'AccountId',
+  Keys: 'SessionKeys5',
+  LookupSource: 'AccountId'
+};
 
 const versioned: OverrideVersionedType[] = [
   {
@@ -12,12 +18,16 @@ const versioned: OverrideVersionedType[] = [
       Address: 'GenericAddress',
       BalanceLock: 'BalanceLockTo212',
       DispatchError: 'DispatchErrorTo198',
+      DispatchInfo: 'DispatchInfoTo244',
       Keys: 'SessionKeys5',
       LookupSource: 'Address',
+      Multiplier: 'Fixed64',
+      OpenTip: 'OpenTipTo225',
       ReferendumInfo: 'ReferendumInfoTo239',
       SlashingSpans: 'SlashingSpansTo204',
       StakingLedger: 'StakingLedgerTo223',
-      Votes: 'VotesTo230'
+      Votes: 'VotesTo230',
+      Weight: 'u32'
     }
   },
   {
@@ -25,12 +35,16 @@ const versioned: OverrideVersionedType[] = [
     types: {
       Address: 'GenericAddress',
       BalanceLock: 'BalanceLockTo212',
+      DispatchInfo: 'DispatchInfoTo244',
       Keys: 'SessionKeys5',
       LookupSource: 'Address',
+      Multiplier: 'Fixed64',
+      OpenTip: 'OpenTipTo225',
       ReferendumInfo: 'ReferendumInfoTo239',
       SlashingSpans: 'SlashingSpansTo204',
       StakingLedger: 'StakingLedgerTo223',
-      Votes: 'VotesTo230'
+      Votes: 'VotesTo230',
+      Weight: 'u32'
     }
   },
   {
@@ -39,32 +53,60 @@ const versioned: OverrideVersionedType[] = [
     types: {
       Address: 'GenericAddress',
       BalanceLock: 'BalanceLockTo212',
+      DispatchInfo: 'DispatchInfoTo244',
       Keys: 'SessionKeys5',
       LookupSource: 'Address',
+      Multiplier: 'Fixed64',
+      OpenTip: 'OpenTipTo225',
       ReferendumInfo: 'ReferendumInfoTo239',
       StakingLedger: 'StakingLedgerTo223',
-      Votes: 'VotesTo230'
+      Votes: 'VotesTo230',
+      Weight: 'u32'
     }
   },
   {
-    // actual at 1050 (1046-1049 is dev)
     minmax: [1046, 1054],
     types: {
       // Indices optional, not in transaction
-      Address: 'AccountId',
-      Keys: 'SessionKeys5',
-      LookupSource: 'AccountId',
+      ...sharedTypes,
+      DispatchInfo: 'DispatchInfoTo244',
+      Multiplier: 'Fixed64',
+      OpenTip: 'OpenTipTo225',
       ReferendumInfo: 'ReferendumInfoTo239',
-      StakingLedger: 'StakingLedgerTo240'
+      StakingLedger: 'StakingLedgerTo240',
+      Weight: 'u32'
     }
   },
   {
-    minmax: [1055, undefined],
+    minmax: [1055, 1056],
     types: {
-      Address: 'AccountId',
-      Keys: 'SessionKeys5',
-      LookupSource: 'AccountId',
-      StakingLedger: 'StakingLedgerTo240'
+      ...sharedTypes,
+      DispatchInfo: 'DispatchInfoTo244',
+      Multiplier: 'Fixed64',
+      OpenTip: 'OpenTipTo225',
+      StakingLedger: 'StakingLedgerTo240',
+      Weight: 'u32'
+    }
+  },
+  {
+    minmax: [1057, 1061],
+    types: {
+      ...sharedTypes,
+      DispatchInfo: 'DispatchInfoTo244',
+      OpenTip: 'OpenTipTo225'
+    }
+  },
+  {
+    minmax: [1062, 2012],
+    types: {
+      ...sharedTypes,
+      OpenTip: 'OpenTipTo225'
+    }
+  },
+  {
+    minmax: [2013, undefined],
+    types: {
+      ...sharedTypes
     }
   }
 ];

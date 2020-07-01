@@ -2,10 +2,9 @@
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
+import type BN from 'bn.js';
 import { AccountId, Balance, EraIndex, Exposure, Keys, RewardDestination, RewardPoint, StakingLedger, ValidatorPrefs } from '@polkadot/types/interfaces';
 import { DeriveSessionIndexes } from '../session/types';
-
-import BN from 'bn.js';
 
 export type DeriveEraValPoints = Record<string, RewardPoint>;
 
@@ -84,7 +83,6 @@ export interface DeriveStakerReward {
   isEmpty: boolean;
   isValidator: boolean;
   nominating: DeriveEraExposureNominating[];
-  total: Balance;
   validators: Record<string, DeriveStakerRewardValidator>;
 }
 
@@ -96,6 +94,11 @@ export interface DeriveStakerSlashes {
 export interface DeriveStakingElected {
   nextElected: AccountId[];
   info: DeriveStakingQuery[];
+}
+
+export interface DeriveStakingWaiting {
+  info: DeriveStakingQuery[];
+  waiting: AccountId[];
 }
 
 export interface DeriveStakingValidators {

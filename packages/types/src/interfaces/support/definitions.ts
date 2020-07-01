@@ -8,18 +8,13 @@
 import { Definitions } from '../../types';
 
 export default {
-  rpc: {
-    nextIndex: {
-      alias: ['system_accountNextIndex'],
-      description: 'Retrieves the next accountIndex as available on the node',
-      params: [
-        {
-          name: 'accountId',
-          type: 'AccountId'
-        }
-      ],
-      type: 'Index'
+  rpc: {},
+  types: {
+    WeightToFeeCoefficient: {
+      coeffInteger: 'Balance',
+      coeffFrac: 'Perbill',
+      negative: 'bool',
+      degree: 'u8'
     }
-  },
-  types: {}
+  }
 } as Definitions;

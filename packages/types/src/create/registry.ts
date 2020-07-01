@@ -13,7 +13,7 @@ import { assert, formatBalance, isFunction, isString, isU8a, isUndefined, string
 import Raw from '../codec/Raw';
 import { defaultExtensions, expandExtensionTypes, findUnknownExtensions } from '../extrinsic/signedExtensions';
 import { EventData } from '../generic/Event';
-import Unconstructable from '../primitive/Unconstructable';
+import DoNotConstruct from '../primitive/DoNotConstruct';
 import { createClass, getTypeClass } from './createClass';
 import { createType } from './createType';
 import { getTypeDef } from './getTypeDef';
@@ -48,6 +48,7 @@ function decorateEvents (registry: Registry, metadata: RegistryMetadata, metadat
       section.events.unwrap().forEach((meta, methodIndex): void => {
         const methodName = meta.name.toString();
         const eventIndex = new Uint8Array([sectionIndex, methodIndex]);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
         const typeDef = meta.args.map((arg): TypeDef => getTypeDef(arg.toString()));
         let Types: Constructor<Codec>[] = [];
 
@@ -79,9 +80,9 @@ function decorateExtrinsics (registry: Registry, metadata: RegistryMetadata, met
 }
 
 export class TypeRegistry implements Registry {
-  readonly #classes: Map<string, Constructor> = new Map();
+  readonly #classes = new Map<string, Constructor>();
 
-  readonly #definitions: Map<string, string> = new Map();
+  readonly #definitions = new Map<string, string>();
 
   readonly #metadataCalls: Record<string, CallFunction> = {};
 
@@ -89,19 +90,21 @@ export class TypeRegistry implements Registry {
 
   readonly #metadataEvents: Record<string, Constructor<EventData>> = {};
 
-  readonly #unknownTypes: Map<string, boolean> = new Map();
+  readonly #unknownTypes = new Map<string, boolean>();
 
   #chainProperties?: ChainProperties;
 
-  #metadataExtensions: string[] = defaultExtensions;
-
   #knownTypes: RegisteredTypes = {};
+
+  #signedExtensions: string[] = defaultExtensions;
 
   constructor () {
     // we only want to import these on creation, i.e. we want to avoid types
     // weird side-effects from circular references. (Since registry is injected
     // into types, this can  be a real concern now)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const baseTypes: RegistryTypes = require('../index.types');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const definitions: Record<string, { types: RegistryTypes }> = require('../interfaces/definitions');
 
     // since these are classes, they are injected first
@@ -135,17 +138,22 @@ export class TypeRegistry implements Registry {
     return this.#knownTypes;
   }
 
+  public get signedExtensions (): string[] {
+    return this.#signedExtensions;
+  }
+
   /**
    * @describe Creates an instance of the class
    */
   public createClass <K extends keyof InterfaceTypes> (type: K): Constructor<InterfaceTypes[K]> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return createClass(this, type) as any;
   }
 
   /**
    * @description Creates an instance of a type as registered
    */
-  public createType <K extends keyof InterfaceTypes> (type: K, ...params: any[]): InterfaceTypes[K] {
+  public createType <K extends keyof InterfaceTypes> (type: K, ...params: unknown[]): InterfaceTypes[K] {
     return createType(this, type, ...params);
   }
 
@@ -154,7 +162,7 @@ export class TypeRegistry implements Registry {
     const hexIndex = u8aToHex(callIndex);
     const fn = this.#metadataCalls[hexIndex];
 
-    assert(!isUndefined(fn), `findMetaCall: Unable to find Call with index ${hexIndex}/[${callIndex}]`);
+    assert(!isUndefined(fn), `findMetaCall: Unable to find Call with index ${hexIndex}/[${callIndex.toString()}]`);
 
     return fn;
   }
@@ -168,7 +176,7 @@ export class TypeRegistry implements Registry {
     );
     const error = this.#metadataErrors[hexIndex];
 
-    assert(!isUndefined(error), `findMetaError: Unable to find Error with index ${hexIndex}/[${errorIndex}]`);
+    assert(!isUndefined(error), `findMetaError: Unable to find Error with index ${hexIndex}/[${errorIndex.toString()}]`);
 
     return error;
   }
@@ -177,7 +185,7 @@ export class TypeRegistry implements Registry {
     const hexIndex = u8aToHex(eventIndex);
     const Event = this.#metadataEvents[hexIndex];
 
-    assert(!isUndefined(Event), `findMetaEvent: Unable to find Event with index ${hexIndex}/[${eventIndex}]`);
+    assert(!isUndefined(Event), `findMetaEvent: Unable to find Event with index ${hexIndex}/[${eventIndex.toString()}]`);
 
     return Event;
   }
@@ -194,10 +202,10 @@ export class TypeRegistry implements Registry {
       if (definition) {
         BaseType = createClass(this, definition);
       } else if (withUnknown) {
-        console.warn(`Unable to resolve type ${name}, it will fail on constrution`);
+        console.warn(`Unable to resolve type ${name}, it will fail on construction`);
 
         this.#unknownTypes.set(name, true);
-        BaseType = Unconstructable.with(name);
+        BaseType = DoNotConstruct.with(name);
       }
 
       if (BaseType) {
@@ -215,6 +223,14 @@ export class TypeRegistry implements Registry {
 
   public getChainProperties (): ChainProperties | undefined {
     return this.#chainProperties;
+  }
+
+  public getClassName (clazz: Constructor): string | undefined {
+    const entry = [...this.#classes.entries()].find(([, test]) => test === clazz);
+
+    return entry
+      ? entry[0]
+      : undefined;
   }
 
   public getDefinition (name: string): string | undefined {
@@ -236,11 +252,11 @@ export class TypeRegistry implements Registry {
   }
 
   public getSignedExtensionExtra (): Record<string, keyof InterfaceTypes> {
-    return expandExtensionTypes(this.#metadataExtensions, 'extra');
+    return expandExtensionTypes(this.#signedExtensions, 'extra');
   }
 
   public getSignedExtensionTypes (): Record<string, keyof InterfaceTypes> {
-    return expandExtensionTypes(this.#metadataExtensions, 'types');
+    return expandExtensionTypes(this.#signedExtensions, 'types');
   }
 
   public hasClass (name: string): boolean {
@@ -270,11 +286,11 @@ export class TypeRegistry implements Registry {
 
       this.#classes.set(arg1, arg2);
     } else {
-      this.registerObject(arg1);
+      this._registerObject(arg1);
     }
   }
 
-  private registerObject (obj: RegistryTypes): void {
+  private _registerObject (obj: RegistryTypes): void {
     Object.entries(obj).forEach(([name, type]): void => {
       if (isFunction(type)) {
         // This _looks_ a bit funny, but `typeof Clazz === 'function'
@@ -306,20 +322,29 @@ export class TypeRegistry implements Registry {
   }
 
   // sets the metadata
-  public setMetadata (metadata: RegistryMetadata): void {
+  public setMetadata (metadata: RegistryMetadata, signedExtensions?: string[]): void {
     decorateExtrinsics(this, metadata, this.#metadataCalls);
     decorateErrors(this, metadata, this.#metadataErrors);
     decorateEvents(this, metadata, this.#metadataEvents);
 
     // setup the available extensions
-    this.#metadataExtensions = metadata.asLatest.extrinsic.version.gtn(0)
-      ? metadata.asLatest.extrinsic.signedExtensions.map((key): string => key.toString())
-      : defaultExtensions;
+    this.setSignedExtensions(
+      signedExtensions || (
+        metadata.asLatest.extrinsic.version.gtn(0)
+          ? metadata.asLatest.extrinsic.signedExtensions.map((key) => key.toString())
+          : defaultExtensions
+      )
+    );
+  }
 
-    const unknown = findUnknownExtensions(this.#metadataExtensions);
+  // sets the available signed extensions
+  setSignedExtensions (signedExtensions: string[] = defaultExtensions): void {
+    this.#signedExtensions = signedExtensions;
+
+    const unknown = findUnknownExtensions(this.#signedExtensions);
 
     if (unknown.length) {
-      console.warn(`Unknown signed extensions [${unknown.join(', ')}] found, treating them as no-efect`);
+      console.warn(`Unknown signed extensions ${unknown.join(', ')} found, treating them as no-effect`);
     }
   }
 }

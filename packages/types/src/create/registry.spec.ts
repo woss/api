@@ -2,14 +2,16 @@
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 import { Codec, Constructor } from '../types';
 
 import { isChildClass } from '@polkadot/util';
 
 import Struct from '../codec/Struct';
+import DoNotConstruct from '../primitive/DoNotConstruct';
 import Text from '../primitive/Text';
 import U32 from '../primitive/U32';
-import Unconstructable from '../primitive/Unconstructable';
 import { TypeRegistry } from './registry';
 
 describe('TypeRegistry', (): void => {
@@ -29,7 +31,7 @@ describe('TypeRegistry', (): void => {
 
     expect(Type).toBeDefined();
     // eslint-disable-next-line no-prototype-builtins
-    expect(isChildClass(Unconstructable, Type));
+    expect(isChildClass(DoNotConstruct, Type));
   });
 
   it('can register single type', (): void => {
@@ -70,10 +72,39 @@ describe('TypeRegistry', (): void => {
       const first = new Recursive(registry, { next: last });
 
       expect((first as any).next.isSome).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       expect((first as any).next.unwrap().next.isSome).toBe(false);
     });
 
-    it('can register cross-referencing types ()', (): void => {
+    it('can register non-embedded recursive types', (): void => {
+      registry.register({
+        Operation: {
+          data: 'OperationData'
+        },
+        OperationData: {
+          ops: 'Vec<Operation>'
+        },
+        Rule: {
+          data: 'RuleData'
+        },
+        RuleData: {
+          ops: 'Vec<Operation>'
+        }
+      });
+
+      expect(registry.hasDef('Rule')).toBe(true);
+      expect(registry.hasClass('Rule')).toBe(false);
+
+      const Rule = registry.getOrThrow('Rule');
+
+      expect(registry.hasClass('Rule')).toBe(true);
+
+      const instance = new Rule(registry);
+
+      expect(instance.toRawType()).toEqual('{"data":"RuleData"}');
+    });
+
+    it('can register cross-referencing types', (): void => {
       registry.register({
         A: {
           next: 'B'
@@ -122,7 +153,9 @@ describe('TypeRegistry', (): void => {
       });
 
       expect(struct instanceof Struct).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       expect(struct.foo.toNumber()).toEqual(42);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       expect(struct.bar.toString()).toEqual('testing');
     });
   });
